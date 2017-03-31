@@ -24,47 +24,65 @@ type
   procedure insert(p:longint;const b:Vector);
   procedure delete(p,L:longint);
   procedure fill(l,r,x:longint);
+  function isnil:boolean;
  end;
 
  HashTab=object
   size,hashsize:longint;
   head,next,node,numb:Vector;
+  procedure clear;
   procedure insert(x:longint);
   procedure delete(x:longint);
   function find(x:longint):longint;
   function count(x:longint):longint;
   procedure Union(const b:HashTab);
+  function isnil:boolean;
  end;
 
  Heap=object
-  size:longint;
+  size,bias:longint;
   comp:boolean;
   h:Vector;
   procedure setcmp(z:boolean);
+  procedure clear;
+  procedure add(x:longint);
   procedure push(x:longint);
   procedure pop;
   function top:longint;
+  function isnil:boolean;
  end;
 
  DeleteHeap=object
-  size:longint;
   A,B:Heap;
+  procedure clear;
   procedure update;
+  procedure add(x:longint);
   procedure push(x:longint);
   procedure pop;
   procedure delete(x:longint);
   function top:longint;
+  function isnil:boolean;
+ end;
+
+ Stack=object
+  size:longint;
+  sta:Vector;
+  procedure clear;
+  procedure push(x:longint);
+  procedure pop;
+  function top:longint;
+  function isnil:boolean;
  end;
 
  Treap=object
   root,size,tot:longint;
-  comp:boolean;
   va,sm,ct,db,ls,rs,rd:Vector;
   private
    procedure pu(k:longint);
    procedure rr(var k:longint);
    procedure lr(var k:longint);
   public
+   procedure clear;
    procedure insert(x:longint);
    procedure delete(x:longint);
    function count(x:longint):longint;
@@ -73,8 +91,8 @@ type
    function askrank(x:longint):longint;
    function getrank(x:longint):longint;
    function getsum(l,r:longint):longint;
+   function isnil:boolean;
  end;
-
 
  procedure Vector.resize(n:longint);
  var m:longint;
@@ -131,9 +149,25 @@ type
   else for i:=l to r do a[i]:=x
  end;
 
+ function Vector.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
+ procedure HashTab.clear;
+ begin
+  size:=0;
+  hashsize:=0;
+  head.resize(0);
+  next.resize(0);
+  node.resize(0);
+  numb.resize(0)
+ end;
+
  procedure HashTab.insert(x:longint);
  var i,u:longint;
  begin
+  inc(size);
   i:=find(x);
   if i<>-1 then begin inc(numb.a[i]); exit end;
   node.pushback(x);
@@ -164,7 +198,8 @@ type
   i:=@head.a[u];
   while i^<>0 do
   begin
-   if node.a[i^]=x then begin dec(numb.a[i^]); i^:=next.a[i^]; exit end;
+   if node.a[i^]=x then begin dec(size);
+   if numb.a[i^]>1 then dec(numb.a[i^]) else i^:=next.a[i^]; exit end;
    i:=@next.a[i^]
   end
  end;
@@ -198,14 +233,31 @@ type
   for j:=1 to b.numb.a[i] do insert(b.node.a[i])
  end;
 
+ function HashTab.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
  procedure Heap.setcmp(z:boolean);
  begin
   comp:=z
  end;
 
+ procedure Heap.clear;
+ begin
+  size:=0;
+  h.resize(0)
+ end;
+
+ procedure Heap.add(x:longint);
+ begin
+  inc(bias,x)
+ end;
+
  procedure Heap.push(x:longint);
  var i:longint;
  begin
+  dec(x,bias);
   inc(size);
   h.pushback(x);
   i:=size;
@@ -234,7 +286,18 @@ type
  function Heap.top:longint;
  begin
   if size=0 then exit(-1);
-  exit(h.a[1])
+  exit(h.a[1]+bias)
+ end;
+
+ function Heap.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
+ procedure DeleteHeap.clear;
+ begin
+  A.clear;
+  B.clear
  end;
 
  procedure DeleteHeap.update;
@@ -246,15 +309,19 @@ type
   end
  end;
 
+ procedure DeleteHeap.add(x:longint);
+ begin
+  A.add(x);
+  B.add(x)
+ end;
+
  procedure DeleteHeap.push(x:longint);
  begin
-  inc(size);
   A.push(x)
  end;
 
  procedure DeleteHeap.delete(x:longint);
  begin
-  dec(size);
   B.push(x)
  end;
 
@@ -267,6 +334,12 @@ type
  begin
   update;
   exit(A.top)
+ end;
+
+ function DeleteHeap.isnil:boolean;
+ begin
+  update;
+  exit(A.isnil)
  end;
 
  procedure Treap.pu(k:longint);
@@ -295,6 +368,20 @@ type
      rs.a[k]:=ls.a[t];
               ls.a[t]:=k;   pu(k); pu(t);
                        k:=t
+ end;
+
+ procedure Treap.clear;
+ begin
+  size:=0;
+  root:=0;
+  tot:=0;
+  va.resize(0);
+  sm.resize(0);
+  ct.resize(0);
+  db.resize(0);
+  ls.resize(0);
+  rs.resize(0);
+  rd.resize(0)
  end;
 
  procedure Treap.insert(x:longint);
@@ -437,6 +524,38 @@ type
   exit(sksum(root,r)-sksum(root,l-1))
  end;
 
+ function Treap.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
+ procedure Stack.Clear;
+ begin
+  size:=0;
+  sta.resize(0)
+ end;
+
+ procedure Stack.push(x:longint);
+ begin
+  inc(size);
+  sta.pushback(x)
+ end;
+
+ procedure Stack.pop;
+ begin
+  sta.delete(size,1);
+  dec(size)
+ end;
+
+ function Stack.top:longint;
+ begin
+  exit(sta.a[size])
+ end;
+
+ function Stack.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
 
 begin
 
