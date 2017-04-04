@@ -9,3 +9,9 @@
 ◀Heap▶  
 ◀DeleteHeap▶   
 ◀Treap▶   
+
+2017/4/4 添加      
+◀Stack▶  
+◀BitSet▶  
+◀Splay▶   
+◀TreeArray▶   
