@@ -1,19 +1,9 @@
-function max(a,b:longint):longint;
-begin if a>b then exit(a); exit(b) end;
-
-function min(a,b:longint):longint;
-begin if a>b then exit(b); exit(a) end;
-
-procedure sw(var a,b:longint);
-var c:longint; begin c:=a; a:=b; b:=c end;
+unit StructUnit;
+interface
 
 const
  Less=false;
  Greater=true;
-
-function cmp(a,b:longint;z:boolean):boolean;
-begin exit((a<b)xor z) end;
-
 type
  Vector=object
   size:longint;
@@ -24,6 +14,25 @@ type
   procedure insert(p:longint;const b:Vector);
   procedure delete(p,L:longint);
   procedure fill(l,r,x:longint);
+  function isnil:boolean;
+ end;
+
+ BitSet=object
+  size,len:longint;
+  a:array of longint;
+  function ct1(x:longint):longint;
+  procedure clear;
+  procedure resize(n:longint);
+  procedure pushback(const s:ansistring);
+  procedure pushback(x:char);
+  procedure convert(const s:ansistring);
+  procedure set0(l,r:longint);
+  procedure set1(l,r:longint);
+  procedure reverse(l,r:longint);
+  function pos(x:longint):longint;
+  function copy(l,r:longint):ansistring;
+  function count0(l,r:longint):longint;
+  function count1(l,r:longint):longint;
   function isnil:boolean;
  end;
 
@@ -65,11 +74,11 @@ type
  end;
 
  Stack=object
-  size:longint;
   sta:Vector;
   procedure clear;
   procedure push(x:longint);
   procedure pop;
+  function size:longint;
   function top:longint;
   function isnil:boolean;
  end;
@@ -93,6 +102,73 @@ type
    function getsum(l,r:longint):longint;
    function isnil:boolean;
  end;
+
+ Splay=object
+  root,size,tot:longint;
+  fa,va,sm,ct,ad,tm,cg,ad_tg,tm_tg,cg_tg,rv:Vector;
+  sn:array[0..1]of Vector;
+//tp:Stack;
+  private
+// function isroot(x:longint):boolean;
+   procedure _ad(x,y:longint);
+   procedure _tm(x,y:longint);
+   procedure _cg(x,y:longint);
+   procedure _rv(x:longint);
+   procedure pu(x:longint);
+   procedure pd(x:longint);
+   procedure rotate(x:longint;var k:longint);
+   procedure splay(x:longint;var k:longint);
+   procedure split(l,r:longint);
+   function newnode(x:longint):longint;
+   function sk(k,x:longint):longint;
+   function build(const a:array of longint;s,t:longint):longint;
+  public
+   procedure clear;
+   procedure insert(p,x:longint);
+   procedure insert(p:longint;const a:array of longint);
+   procedure delete(p,x:longint);
+   procedure change(l,r,x:longint);
+   procedure add(l,r,x:longint);
+   procedure multiply(l,r,x:longint);
+   procedure reverse(l,r:longint);
+   function sum(l,r:longint):longint;
+   function isnil:boolean;
+ end;
+
+ TreeArray=object
+  size:longint;
+  f:vector;
+  procedure setsize(n:longint);
+  procedure add(x,y:longint);
+  function sum(x:longint):longint;
+  function isnil:boolean;
+ end;
+
+
+operator +(const a,b:Vector)c:Vector;
+
+var
+ i:longint;
+ BitSetCt:array[0..65536]of longint;
+
+
+implementation
+
+
+function max(a,b:longint):longint;
+begin if a>b then exit(a); exit(b) end;
+
+function min(a,b:longint):longint;
+begin if a>b then exit(b); exit(a) end;
+
+procedure sw(var a,b:longint);
+var c:longint; begin c:=a; a:=b; b:=c end;
+
+
+
+function cmp(a,b:longint;z:boolean):boolean;
+begin exit((a<b)xor z) end;
+
 
  procedure Vector.resize(n:longint);
  var m:longint;
@@ -126,7 +202,8 @@ type
   n:=b.size;
   inc(size,n+max(0,p-1-size));
   resize(size);
-  Move(a[p],a[p+n],n<<2);
+  if size-p-n+1>0 then
+  Move(a[p],a[p+n],(size-p-n+1)<<2);
   Move(b.a[1],a[p],n<<2)
  end;
 
@@ -150,6 +227,164 @@ type
  end;
 
  function Vector.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
+ operator +(const a,b:Vector)c:Vector;
+ begin
+  c.resize(0);
+  c.insert(1,a);
+  c.insert(a.size+1,b)
+ end;
+
+ function BitSet.ct1(x:longint):longint;
+ begin
+  exit(BitSetCt[x and 65535]+BitSetCt[x>>16])
+ end;
+
+ procedure BitSet.clear;
+ begin
+  size:=0;
+  len:=0
+ end;
+
+ procedure BitSet.resize(n:longint);
+ begin
+  size:=n;
+  len:=(size-1)>>5+1;
+  if high(a)+1<len then setlength(a,len);
+  fillchar(a[0],len<<2,0)
+ end;
+
+ procedure BitSet.pushback(const s:ansistring);
+ var i:longint;
+ begin
+  for i:=1 to length(s) do pushback(s[i])
+ end;
+
+ procedure BitSet.pushback(x:char);
+ begin
+  inc(size);
+  if size and 31=1 then
+  begin
+   inc(len);
+   if high(a)<len then setlength(a,len<<1);
+   a[len-1]:=ord(x)and 1
+  end
+  else
+   a[len-1]:=a[len-1]or longint(ord(x)and 1)<<((size-1)and 31)
+ end;
+
+ procedure BitSet.convert(const s:ansistring);
+ var i,j:longint;
+ begin
+  resize(length(s));
+  for i:=0 to len-1 do
+  for j:=i<<5+1 to min((i+1)<<5,length(s)) do
+   a[i]:=a[i]or (ord(s[j])and 1)<<((j-1)and 31)
+ end;
+
+ procedure BitSet.set0(l,r:longint);
+ var i,pl,pr:longint;
+ begin
+  if l>r then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  pl:=(l-1)>>5;
+  pr:=(r-1)>>5;
+  l:=(l-1)and 31+1;
+  r:=(r-1)and 31+1;
+  if pl=pr then
+   a[pl]:=a[pl]and(((1<<(r-l+1)-1)<<(l-1))xor(-1))
+  else
+  begin
+   for i:=pl+1 to pr-1 do a[i]:=0;
+   a[pl]:=a[pl]and(1<<(l-1)-1);
+   a[pr]:=a[pr]>>r<<r
+  end
+ end;
+
+ procedure BitSet.set1(l,r:longint);
+ var i,pl,pr:longint;
+ begin
+  if l>r then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  pl:=(l-1)>>5;
+  pr:=(r-1)>>5;
+  l:=(l-1)and 31+1;
+  r:=(r-1)and 31+1;
+  if pl=pr then
+   a[pl]:=a[pl]or((1<<(r-l+1)-1)<<(l-1))
+  else
+  begin
+   for i:=pl+1 to pr-1 do a[i]:=-1;
+   a[pl]:=a[pl]or((1<<(33-l)-1)<<(l-1));
+   a[pr]:=a[pr]or(1<<r-1)
+  end
+ end;
+
+ procedure BitSet.reverse(l,r:longint);
+ var i,pl,pr:longint;
+ begin
+  if l>r then exit;
+  if l<1 then l:=1;
+  if r>size then r:=size;
+  pl:=(l-1)>>5;
+  pr:=(r-1)>>5;
+  l:=(l-1)and 31+1;
+  r:=(r-1)and 31+1;
+  if pl=pr then
+   a[pl]:=a[pl]xor((1<<(r-l+1)-1)<<(l-1))
+  else
+  begin
+   for i:=pl+1 to pr-1 do a[i]:=not a[i];
+   a[pl]:=a[pl]xor((1<<(33-l)-1)<<(l-1));
+   a[pr]:=a[pr]xor(1<<r-1)
+  end
+ end;
+
+ function BitSet.pos(x:longint):longint;
+ begin
+  if (x<1)or(x>size) then exit(-1);
+  exit((a[(x-1)>>5]>>((x-1)and 31))and 1)
+ end;
+
+ function BitSet.copy(l,r:longint):ansistring;
+ var i:longint;
+ begin
+  if l>r then exit('');
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  copy:='';
+  for i:=l to r do copy:=copy+chr(pos(i)+48)
+ end;
+
+ function BitSet.count1(l,r:longint):longint;
+ var i,pl,pr:longint;
+ begin
+  if l>r then exit(0);
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  pl:=(l-1)>>5;
+  pr:=(r-1)>>5;
+  if pl=pr then exit(ct1((a[pl]and(1<<r-1))>>(l-1)));
+  count1:=0;
+  for i:=pl+1 to pr-1 do inc(count1,ct1(a[i]));
+  inc(count1,a[pl]>>(l-1));
+  inc(count1,a[pr]and(1<<r-1))
+ end;
+
+ function BitSet.count0(l,r:longint):longint;
+ begin
+  if l>r then exit(0);
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  exit(r-l+1-count1(l,r))
+ end;
+
+ function BitSet.isnil:boolean;
  begin
   exit(size=0)
  end;
@@ -531,32 +766,377 @@ type
 
  procedure Stack.Clear;
  begin
-  size:=0;
   sta.resize(0)
  end;
 
  procedure Stack.push(x:longint);
  begin
-  inc(size);
   sta.pushback(x)
  end;
 
  procedure Stack.pop;
  begin
-  sta.delete(size,1);
-  dec(size)
+  sta.delete(sta.size,1);
+ end;
+
+ function Stack.size:longint;
+ begin
+  exit(sta.size)
  end;
 
  function Stack.top:longint;
  begin
-  exit(sta.a[size])
+  exit(sta.a[sta.size])
  end;
 
  function Stack.isnil:boolean;
+ begin
+  exit(sta.isnil)
+ end;
+{
+ function Splay.isroot(x:longint):boolean;
+ var y:longint;
+ begin
+  y:=fa.a[x]; if y=0 then exit(true);
+  exit((sn[0].a[y]<>x)and(sn[1].a[y]<>x))
+ end;
+}
+ procedure Splay._ad(x,y:longint);
+ begin
+  ad_tg.a[x]:=1;
+  inc(ad.a[x],y);
+  inc(va.a[x],y);
+  inc(sm.a[x],ct.a[x]*y)
+ end;
+
+ procedure Splay._tm(x,y:longint);
+ begin
+  if ad_tg.a[x]=1 then ad.a[x]:=ad.a[x]*y;
+  tm_tg.a[x]:=1;
+  tm.a[x]:=tm.a[x]*y;
+  va.a[x]:=va.a[x]*y;
+  sm.a[x]:=sm.a[x]*y
+ end;
+
+ procedure Splay._cg(x,y:longint);
+ begin
+  if ad_tg.a[x]=1 then begin ad.a[x]:=0; ad_tg.a[x]:=0 end;
+  if tm_tg.a[x]=1 then begin tm.a[x]:=1; tm_tg.a[x]:=0 end;
+  cg_tg.a[x]:=1;
+  cg.a[x]:=y;
+  va.a[x]:=y;
+  sm.a[x]:=ct.a[x]*y
+ end;
+
+ procedure Splay._rv(x:longint);
+ begin
+  rv.a[x]:=1-rv.a[x];
+  sw(sn[0].a[x],sn[1].a[x])
+ end;
+
+ procedure Splay.pu(x:longint);
+ var l,r:longint;
+ begin
+  l:=sn[0].a[x]; r:=sn[1].a[x];
+  ct.a[x]:=1;
+  sm.a[x]:=va.a[x];
+  if l<>0 then begin inc(sm.a[x],sm.a[l]); inc(ct.a[x],ct.a[l]) end;
+  if r<>0 then begin inc(sm.a[x],sm.a[r]); inc(ct.a[x],ct.a[r]) end
+ end;
+
+ procedure Splay.pd(x:longint);
+ var l,r:longint;
+ begin
+  l:=sn[0].a[x]; r:=sn[1].a[x];
+  if cg_tg.a[x]=1 then
+  begin
+   if l<>0 then _cg(l,cg.a[x]);
+   if r<>0 then _cg(r,cg.a[x]);
+   cg_tg.a[x]:=0
+  end;
+  if tm_tg.a[x]=1 then
+  begin
+   if l<>0 then _tm(l,tm.a[x]);
+   if r<>0 then _tm(r,tm.a[x]);
+   tm.a[x]:=1;
+   tm_tg.a[x]:=0
+  end;
+  if ad_tg.a[x]=1 then
+  begin
+   if l<>0 then _ad(l,ad.a[x]);
+   if r<>0 then _ad(r,ad.a[x]);
+   ad.a[x]:=0;
+   ad_tg.a[x]:=0
+  end;
+  if rv.a[x]=1 then
+  begin
+   if l<>0 then _rv(l);
+   if r<>0 then _rv(r);
+   rv.a[x]:=0
+  end
+ end;
+
+ procedure Splay.rotate(x:longint;var k:longint);
+ var y,z,p:longint;
+ begin
+  y:=fa.a[x]; z:=fa.a[y]; p:=ord(sn[1].a[y]=x);
+  if y=k then k:=x else sn[ord(sn[1].a[z]=y)].a[z]:=x;
+  fa.a[y]:=x; fa.a[x]:=z; fa.a[sn[1-p].a[x]]:=y;
+  sn[p].a[y]:=sn[1-p].a[x]; sn[1-p].a[x]:=y;
+  pu(y); //pu(x)
+ end;
+
+ procedure Splay.splay(x:longint;var k:longint);
+ var y,z:longint;
+ begin
+  {
+  tp.clear; tp.push(x); y:=x;
+  while y<>k do begin y:=fa.a[y]; tp.push(y) end;
+  while not tp.isnil do begin pd(tp.top); tp.pop end;
+  }
+  while x<>k do
+  begin
+   y:=fa.a[x]; z:=fa.a[y];
+   if y<>k then
+   if (sn[0].a[y]=x)xor(sn[0].a[z]=y) then rotate(x,k)
+                                      else rotate(y,k);
+   rotate(x,k)
+  end;
+  pu(x)
+ end;
+
+ function Splay.sk(k,x:longint):longint;
+ var t:longint;
+ begin
+  pd(k);
+  if sn[0].a[k]=0 then t:=1 else t:=ct.a[sn[0].a[k]]+1;
+  if x=t then exit(k);
+  if x<t then exit(sk(sn[0].a[k],x));
+  exit(sk(sn[1].a[k],x-t))
+ end;
+
+ procedure Splay.split(l,r:longint);
+ begin
+  splay(sk(root,l),root);
+  splay(sk(root,r+2),sn[1].a[root])
+ end;
+
+ function Splay.newnode(x:longint):longint;
+ begin
+  inc(tot);
+  fa.pushback(0);
+  va.pushback(x);
+  sm.pushback(x);
+  ct.pushback(1);
+  ad.pushback(0); ad_tg.pushback(0);
+  tm.pushback(1); tm_tg.pushback(0);
+  cg.pushback(0); cg_tg.pushback(0);
+  rv.pushback(0);
+  sn[0].pushback(0);
+  sn[1].pushback(0);
+  exit(tot)
+ end;
+
+ procedure Splay.clear;
+ begin
+  root:=0;
+  size:=0;
+  tot:=0;
+  fa.resize(0);
+  va.resize(0);
+  sm.resize(0);
+  ct.resize(0);
+  ad.resize(0); ad_tg.resize(0);
+  tm.resize(0); tm_tg.resize(0);
+  cg.resize(0); cg_tg.resize(0);
+  rv.resize(0);
+  sn[0].resize(0);
+  sn[1].resize(0)
+ end;
+
+ procedure Splay.insert(p,x:longint);
+ var t:longint;
+ begin
+  if (p<1)or(p>size+1) then exit;
+  if isnil then
+  begin
+   inc(size);
+   root:=newnode(x);
+   t:=newnode(0); sn[0].a[root]:=t; fa.a[t]:=root;
+   t:=newnode(0); sn[1].a[root]:=t; fa.a[t]:=root
+  end
+  else
+  begin
+   inc(size);
+   split(p,p-1);
+   t:=newnode(x);
+   sn[0].a[sn[1].a[root]]:=t;
+   fa.a[t]:=sn[1].a[root];
+   pu(sn[1].a[root]);
+   pu(root);
+   splay(sk(root,random(size)+1),root)
+  end
+ end;
+
+ function Splay.build(const a:array of longint;s,t:longint):longint;
+
+  function bd(l,r:longint):longint;
+  var m,t:longint;
+  begin
+   if l>r then exit(0);
+   if l=r then exit(newnode(a[l]));
+   m:=(l+r)>>1;
+   bd:=newnode(a[m]);
+   t:=bd(l,m-1); if t<>0 then begin sn[0].a[bd]:=t; fa.a[t]:=bd end;
+   t:=bd(1+m,r); if t<>0 then begin sn[1].a[bd]:=t; fa.a[t]:=bd end;
+   pu(bd)
+  end;
+
+ begin
+  exit(bd(s,t))
+ end;
+
+ procedure Splay.insert(p:longint;const a:array of longint);
+ var t:longint;
+ begin
+  if (p<1)or(p>size+1) then exit;
+  t:=build(a,0,high(a));
+  if isnil then
+  begin
+   inc(size,high(a)+1);
+   root:=newnode(0);
+   sn[1].a[root]:=newnode(0);
+   fa.a[sn[1].a[root]]:=root;
+   sn[0].a[sn[1].a[root]]:=t;
+   fa.a[t]:=sn[1].a[root];
+   pu(sn[1].a[root]);
+   pu(root)
+  end
+  else
+  begin
+   inc(size,high(a)+1);
+   split(p,p-1);
+   sn[0].a[sn[1].a[root]]:=t;
+   fa.a[t]:=sn[1].a[root];
+   pu(sn[1].a[root]);
+   pu(root);
+   splay(sk(root,random(size)+1),root)
+  end
+ end;
+
+ procedure Splay.delete(p,x:longint);
+ begin
+  if (p>size)or(x=0) then exit;
+  if p+x-1>size then x:=size-p+1;
+  dec(size,x);
+  split(p,p+x-1);
+  sn[0].a[sn[1].a[root]]:=0;
+  pu(sn[1].a[root]);
+  pu(root)
+ end;
+
+ procedure Splay.change(l,r,x:longint);
+ var t:longint;
+ begin
+  if (l>r)or(l>size) then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  split(l,r);
+  t:=sn[0].a[sn[1].a[root]];
+  pd(t);
+  _cg(t,x);
+  pu(sn[1].a[root]);
+  pu(root)
+ end;
+
+ procedure Splay.add(l,r,x:longint);
+ var t:longint;
+ begin
+  if (l>r)or(l>size) then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  split(l,r);
+  t:=sn[0].a[sn[1].a[root]];
+  pd(t);
+  _ad(t,x);
+  pu(sn[1].a[root]);
+  pu(root)
+ end;
+
+ procedure Splay.multiply(l,r,x:longint);
+ var t:longint;
+ begin
+  if (l>r)or(l>size) then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  split(l,r);
+  t:=sn[0].a[sn[1].a[root]];
+  pd(t);
+  _tm(t,x);
+  pu(sn[1].a[root]);
+  pu(root)
+ end;
+
+ procedure Splay.reverse(l,r:longint);
+ var t:longint;
+ begin
+  if (l>r)or(l>size) then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  split(l,r);
+  t:=sn[0].a[sn[1].a[root]];
+  pd(t);
+  _rv(t);
+  pu(sn[1].a[root]);
+  pu(root)
+ end;
+
+ function Splay.sum(l,r:longint):longint;
+ begin
+  if (l>r)or(l>size) then exit;
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  split(l,r);
+  exit(sm.a[sn[0].a[sn[1].a[root]]])
+ end;
+
+ function Splay.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
+ procedure TreeArray.setsize(n:longint);
+ begin
+  size:=n;
+  f.resize(n);
+  f.fill(1,n,0)
+ end;
+
+ procedure TreeArray.add(x,y:longint);
+ begin
+  if x<1 then exit;
+  while x<=size do
+  begin
+   inc(f.a[x],y);
+   inc(x,x and(-x))
+  end
+ end;
+
+ function TreeArray.sum(x:longint):longint;
+ begin
+  sum:=0;
+  while x>0 do
+  begin
+   inc(sum,f.a[x]);
+   dec(x,x and(-x))
+  end
+ end;
+
+ function TreeArray.isnil:boolean;
  begin
   exit(size=0)
  end;
 
 begin
-
+ for i:=1 to 1<<16 do BitSetCt[i]:=BitSetCt[i-i and(-i)]+1;
 end.
