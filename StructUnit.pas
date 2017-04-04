@@ -5,143 +5,143 @@ const
  Less=false;
  Greater=true;
 type
- Vector=object
-  size:longint;
-  a:array of longint;
-  procedure resize(n:longint);
-  procedure pushback(x:longint);
-  procedure insert(p:longint;const b:array of longint);
+ Vector=object                                              //Vector(队列)
+  size:longint;												//队列大小
+  a:array of longint;                                       //队列本体，可用Vector.a[i](i=1..size)访问第i项
+  procedure resize(n:longint);                              //重设队列大小
+  procedure pushback(x:longint);                            //在队列后添加一个数
+  procedure insert(p:longint;const b:array of longint);     //在p位置前插入序列b
   procedure insert(p:longint;const b:Vector);
-  procedure delete(p,L:longint);
-  procedure fill(l,r,x:longint);
-  function isnil:boolean;
+  procedure delete(p,L:longint);                            //在p位置开始删除L个数
+  procedure fill(l,r,x:longint);                            //将l..r的数赋值为x
+  function isnil:boolean;                                   //返回队列是否为空
  end;
 
- BitSet=object
-  size,len:longint;
-  a:array of longint;
-  function ct1(x:longint):longint;
-  procedure clear;
-  procedure resize(n:longint);
-  procedure pushback(const s:ansistring);
-  procedure pushback(x:char);
-  procedure convert(const s:ansistring);
-  procedure set0(l,r:longint);
-  procedure set1(l,r:longint);
-  procedure reverse(l,r:longint);
-  function pos(x:longint):longint;
-  function copy(l,r:longint):ansistring;
-  function count0(l,r:longint):longint;
-  function count1(l,r:longint):longint;
-  function isnil:boolean;
+ BitSet=object                                              //BitSet(压位队列)
+  size,len:longint;                                         //size为压位队列大小
+  a:array of longint;                                       //压位队列本体
+  function ct1(x:longint):longint;                          //*返回x的二进制位上1的个数
+  procedure clear;                                          //清空
+  procedure resize(n:longint);                              //设置压位队列长度为n且清空
+  procedure pushback(const s:ansistring);                   //在压位队列后添加一个01序列
+  procedure pushback(x:char);                               //在压位队列后添加一个01值
+  procedure convert(const s:ansistring);                    //把01序列转换成压位队列
+  procedure set0(l,r:longint);                              //把压位队列上l..r赋值为0
+  procedure set1(l,r:longint);                              //把压位队列上l..r赋值为1
+  procedure reverse(l,r:longint);                           //把压位队列上l..r按位取反
+  function pos(x:longint):longint;                          //返回第x位的值
+  function copy(l,r:longint):ansistring;                    //返回压位队列l..r组成的01串
+  function count0(l,r:longint):longint;                     //返回压位队列l..r上1的个数
+  function count1(l,r:longint):longint;                     //返回压位队列l..r上0的个数
+  function isnil:boolean;                                   //返回压位队列是否为空
  end;
 
- HashTab=object
-  size,hashsize:longint;
-  head,next,node,numb:Vector;
-  procedure clear;
-  procedure insert(x:longint);
-  procedure delete(x:longint);
-  function find(x:longint):longint;
-  function count(x:longint):longint;
-  procedure Union(const b:HashTab);
-  function isnil:boolean;
+ HashTab=object                                             //HashTab(哈希表)
+  size,hashsize:longint;                                    //size为Hash表大小
+  head,next,node,numb:Vector;                               //边表，node是原值，numb是出现次数
+  procedure clear;                                          //清空
+  procedure insert(x:longint);                              //添加数x
+  procedure delete(x:longint);                              //删除数x（一次）
+  function find(x:longint):longint;                         //返回数x的位置，找不到就返回-1
+  function count(x:longint):longint;                        //返回数x的出现次数
+  procedure Union(const b:HashTab);                         //与另一个Hash表合并
+  function isnil:boolean;                                   //返回Hash表是否为空
  end;
 
- Heap=object
-  size,bias:longint;
-  comp:boolean;
-  h:Vector;
-  procedure setcmp(z:boolean);
-  procedure clear;
-  procedure add(x:longint);
-  procedure push(x:longint);
-  procedure pop;
-  function top:longint;
-  function isnil:boolean;
+ Heap=object                                                //Heap(堆)
+  size,bias:longint;                                        //size堆大小，bias偏移量
+  comp:boolean;                                             //比较器，true则小根堆，false则大根堆
+  h:Vector;                                                 //堆本体
+  procedure setcmp(z:boolean);                              //设定比较器，setcmp(Less)则小根堆，setcmp(Greater)则大根堆
+  procedure clear;                                          //清空
+  procedure add(x:longint);                                 //整体加值x
+  procedure push(x:longint);                                //添加数x
+  procedure pop;                                            //弹出堆顶
+  function top:longint;                                     //读取堆顶
+  function isnil:boolean;                                   //返回堆是否为空
  end;
 
- DeleteHeap=object
-  A,B:Heap;
-  procedure clear;
-  procedure update;
-  procedure add(x:longint);
-  procedure push(x:longint);
-  procedure pop;
-  procedure delete(x:longint);
-  function top:longint;
-  function isnil:boolean;
+ DeleteHeap=object                                          //DeleteHeap(可删堆)
+  A,B:Heap;                                                 //A表示加堆，B表示减堆
+  procedure clear;                                          //清空
+  procedure update;                                         //更新
+  procedure add(x:longint);                                 //整体加值x
+  procedure push(x:longint);                                //添加数x
+  procedure pop;                                            //弹出堆顶
+  procedure delete(x:longint);                              //删除数x（一次）
+  function top:longint;                                     //返回堆顶
+  function isnil:boolean;                                   //返回可删堆是否为空
  end;
 
- Stack=object
-  sta:Vector;
-  procedure clear;
-  procedure push(x:longint);
-  procedure pop;
-  function size:longint;
-  function top:longint;
-  function isnil:boolean;
+ Stack=object                                               //Stack(栈)
+  sta:Vector;                                               //栈本体
+  procedure clear;                                          //清空
+  procedure push(x:longint);                                //入栈数x
+  procedure pop;                                            //弹出栈顶
+  function size:longint;                                    //返回栈大小
+  function top:longint;                                     //返回栈顶
+  function isnil:boolean;                                   //返回栈是否为空
  end;
 
- Treap=object
-  root,size,tot:longint;
-  va,sm,ct,db,ls,rs,rd:Vector;
+ Treap=object                                               //Treap(树堆——平衡树)
+  root,size,tot:longint;                                    //root树根，size树大小
+  va,sm,ct,db,ls,rs,rd:Vector;                              //va值，sm和，ct个数，db重复个数，ls左子树，rs右子树
   private
-   procedure pu(k:longint);
-   procedure rr(var k:longint);
-   procedure lr(var k:longint);
+   procedure pu(k:longint);                                 //更新
+   procedure rr(var k:longint);                             //zig-zag
+   procedure lr(var k:longint);                             //zig-zag
   public
-   procedure clear;
-   procedure insert(x:longint);
-   procedure delete(x:longint);
-   function count(x:longint):longint;
-   function lower(x:longint):longint;
-   function upper(x:longint):longint;
-   function askrank(x:longint):longint;
-   function getrank(x:longint):longint;
-   function getsum(l,r:longint):longint;
-   function isnil:boolean;
+   procedure clear;                                         //清空
+   procedure insert(x:longint);                             //插入数x
+   procedure delete(x:longint);                             //删除数x（一次）
+   function count(x:longint):longint;                       //统计数x个数
+   function lower(x:longint):longint;                       //返回比x小的最大值
+   function upper(x:longint):longint;                       //返回比x大的最小值
+   function askrank(x:longint):longint;                     //返回x的排名
+   function getrank(x:longint):longint;                     //返回排名x的数
+   function getsum(l,r:longint):longint;                    //返回排名l..r的数的和
+   function isnil:boolean;                                  //返回树堆是否为空
  end;
 
- Splay=object
-  root,size,tot:longint;
-  fa,va,sm,ct,ad,tm,cg,ad_tg,tm_tg,cg_tg,rv:Vector;
-  sn:array[0..1]of Vector;
+ Splay=object                                               //Splay(伸展树——平衡树)
+  root,size,tot:longint;                                    //root树根，size树大小
+  fa,va,sm,ct,ad,tm,cg,ad_tg,tm_tg,cg_tg,rv:Vector;         //fa父亲，va值，sm和，ct个数，ad_tg添加标记，ad添加值，tm_tg乘法标记，tm乘法值，cg_tg赋值标记，cg赋值值，rv反转标记
+  sn:array[0..1]of Vector;                                  //sn[0]左儿子，sn[1]右儿子
 //tp:Stack;
   private
 // function isroot(x:longint):boolean;
-   procedure _ad(x,y:longint);
-   procedure _tm(x,y:longint);
-   procedure _cg(x,y:longint);
-   procedure _rv(x:longint);
-   procedure pu(x:longint);
-   procedure pd(x:longint);
-   procedure rotate(x:longint;var k:longint);
-   procedure splay(x:longint;var k:longint);
-   procedure split(l,r:longint);
-   function newnode(x:longint):longint;
-   function sk(k,x:longint):longint;
-   function build(const a:array of longint;s,t:longint):longint;
+   procedure _ad(x,y:longint);                              //为x子树添加y
+   procedure _tm(x,y:longint);                              //为x子树乘以y
+   procedure _cg(x,y:longint);                              //为x子树赋值y
+   procedure _rv(x:longint);                                //为x子树反转
+   procedure pu(x:longint);                                 //更新
+   procedure pd(x:longint);                                 //下放标记
+   procedure rotate(x:longint;var k:longint);               //zig-zag
+   procedure splay(x:longint;var k:longint);                //把x置为树根
+   procedure split(l,r:longint);                            //提取[l,r]区间，置于root的右儿子的左儿子
+   function newnode(x:longint):longint;                     //创建新结点
+   function sk(k,x:longint):longint;                        //搜索序列第x的结点
+   function build(const a:array of longint;s,t:longint):longint; //为序列a创建准完全二叉树的splay
   public
-   procedure clear;
-   procedure insert(p,x:longint);
-   procedure insert(p:longint;const a:array of longint);
-   procedure delete(p,x:longint);
-   procedure change(l,r,x:longint);
-   procedure add(l,r,x:longint);
-   procedure multiply(l,r,x:longint);
-   procedure reverse(l,r:longint);
-   function sum(l,r:longint):longint;
-   function isnil:boolean;
+   procedure clear;                                         //清空
+   procedure insert(p,x:longint);                           //在p位置前插入数x
+   procedure insert(p:longint;const a:array of longint);    //在p位置前插入序列a
+   procedure delete(p,x:longint);                           //删除p位置开始x个数
+   procedure change(l,r,x:longint);                         //将l..r赋值为x
+   procedure add(l,r,x:longint);                            //将l..r加x
+   procedure multiply(l,r,x:longint);                       //将l..r乘x
+   procedure reverse(l,r:longint);                          //将l..r反转
+   function sum(l,r:longint):longint;                       //求l..r的和
+   function isnil:boolean;                                  //返回伸展树是否为空
  end;
 
- TreeArray=object
-  size:longint;
-  f:vector;
-  procedure setsize(n:longint);
-  procedure add(x,y:longint);
-  function sum(x:longint):longint;
-  function isnil:boolean;
+ TreeArray=object                                           //TreeArray(树状数组)
+  size:longint;                                             //树状数组大小
+  f:vector;                                                 //树状数组本体
+  procedure setsize(n:longint);                             //设定树状数组大小
+  procedure add(x,y:longint);                               //为x添加y
+  function sum(x:longint):longint;                          //求前缀和1..x
+  function isnil:boolean;                                   //返回树状数组是否为空
  end;
 
 
