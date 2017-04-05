@@ -1,19 +1,26 @@
-unit StructUnit;
+﻿unit StructUnit;
 interface
 
 const
  Less=false;
  Greater=true;
 type
+ pint=^longint;
+
  Vector=object                                              //Vector(队列)
-  size:longint;												//队列大小
+  size:longint;                                             //队列大小
   a:array of longint;                                       //队列本体，可用Vector.a[i](i=1..size)访问第i项
+  procedure clear;                                          //清空
   procedure resize(n:longint);                              //重设队列大小
   procedure pushback(x:longint);                            //在队列后添加一个数
   procedure insert(p:longint;const b:array of longint);     //在p位置前插入序列b
-  procedure insert(p:longint;const b:Vector);
+  procedure insert(p:longint;const b:Vector);               
   procedure delete(p,L:longint);                            //在p位置开始删除L个数
   procedure fill(l,r,x:longint);                            //将l..r的数赋值为x
+  procedure discretization(l,r:longint);                    //将l..r的数离散化
+  function clone(l,r:longint):Vector;                       //复制l..r为一个Vector
+  function head:pint;                                       //首元素的指针
+  function tail:pint;                                       //末元素的指针
   function isnil:boolean;                                   //返回队列是否为空
  end;
 
@@ -144,8 +151,26 @@ type
   function isnil:boolean;                                   //返回树状数组是否为空
  end;
 
+ UnionFind=object                                           //UnionFind(并查集)
+  a:HashTab;                                                //离散化数值
+  fa:Vector;                                                //父亲指向
+  function father(x:longint):longint;                       //求x的祖先
+  procedure clear;                                          //清空
+  procedure union(u,v:longint);                             //合并u、v
+  function find(u,v:longint):boolean;                       //询问u、v是否在一个连通块中
+ end;
+
+
 
 operator +(const a,b:Vector)c:Vector;
+
+procedure sort(l,r:pint);                                   //对longint数组快速排序成递增
+procedure sort(l,r:pint;comp:boolean);                      //对longint数组快速排序，Less为递增，Greater为递减
+function unique(l,r:pint):longint;                          //对longint数组相邻的相同元素去重，返回去重后长度
+function lower(s,t:pint;x:longint):longint;                 //对longint数组二分，返回小于x的最大值
+function upper(s,t:pint;x:longint):longint;                 //对longint数组二分，返回大于x的最小值
+function lower_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回小于等于x的最大值
+function upper_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回大于等于x的最小值
 
 var
  i:longint;
@@ -165,10 +190,103 @@ procedure sw(var a,b:longint);
 var c:longint; begin c:=a; a:=b; b:=c end;
 
 
-
 function cmp(a,b:longint;z:boolean):boolean;
 begin exit((a<b)xor z) end;
 
+
+
+procedure sort(l,r:pint;comp:boolean);
+var i,j:pint; m:longint;
+begin
+ if r-l<15 then
+ begin
+  i:=l;   while i<r do  begin
+  j:=i+1; while j<=r do begin
+   if cmp(j^,i^,comp) then sw(i^,j^);
+  inc(j) end;
+  inc(i) end;
+  exit
+ end;
+ i:=l; j:=r; m:=(l+random(r-l+1))^;
+ repeat
+  while cmp(i^,m,comp) do inc(i);
+  while cmp(m,j^,comp) do dec(j);
+  if i<=j then begin sw(i^,j^); inc(i); dec(j) end
+ until i>j;
+ if i<r then sort(i,r,comp);
+ if l<j then sort(l,j,comp)
+end;
+
+procedure sort(l,r:pint);
+begin
+ sort(l,r,Less)
+end;
+
+function unique(l,r:pint):longint;
+var n:longint; i:pint;
+begin
+ if l>r then exit(0);
+ n:=1;
+ i:=l+1;
+ while i<=r do
+ begin
+  if i^<>(i-1)^ then begin (l+n)^:=i^; inc(n) end;
+  inc(i)
+ end;
+ exit(n)
+end;
+
+function lower(s,t:pint;x:Longint):longint;
+var l,r,m:longint;
+begin
+ l:=0; r:=t-s;
+ while l<r do
+ begin
+  m:=(l+r+1)>>1;
+  if (s+m)^<x then l:=m
+              else r:=m-1
+ end;
+ exit(l+1)
+end;
+
+function upper(s,t:pint;x:Longint):longint;
+var l,r,m:longint;
+begin
+ l:=0; r:=t-s;
+ while l<r do
+ begin
+  m:=(l+r)>>1;
+  if (s+m)^>x then r:=m
+              else l:=m+1
+ end;
+ exit(l+1)
+end;
+
+function lower_equal(s,t:pint;x:Longint):longint;
+var l,r,m:longint;
+begin
+ l:=0; r:=t-s;
+ while l<r do
+ begin
+  m:=(l+r+1)>>1;
+  if (s+m)^<=x then l:=m
+               else r:=m-1
+ end;
+ exit(l+1)
+end;
+
+function upper_equal(s,t:pint;x:Longint):longint;
+var l,r,m:longint;
+begin
+ l:=0; r:=t-s;
+ while l<r do
+ begin
+  m:=(l+r)>>1;
+  if (s+m)^>=x then r:=m
+               else l:=m+1
+ end;
+ exit(l+1)
+end;
 
  procedure Vector.resize(n:longint);
  var m:longint;
@@ -177,6 +295,11 @@ begin exit((a<b)xor z) end;
   setlength(a,m);
   if n>size then fill(size+1,n,0);
   size:=n
+ end;
+
+ procedure Vector.clear;
+ begin
+  resize(0)
  end;
 
  procedure Vector.pushback(x:longint);
@@ -224,6 +347,40 @@ begin exit((a<b)xor z) end;
   if r>size then r:=size;
   if x=0 then fillchar(a[l],(r-l+1)<<2,0)
   else for i:=l to r do a[i]:=x
+ end;
+
+ function Vector.clone(l,r:longint):Vector;
+ var t:Vector;
+ begin
+  if l<1    then l:=1;
+  if r>size then r:=size;
+  t.size:=r-l+1;
+  setlength(t.a,t.size+5); t.a[0]:=0;
+  Move(a[l],t.a[1],(size+1)<<2);
+  exit(t)
+ end;
+
+ procedure Vector.discretization(l,r:longint);
+ var b:Vector; i:longint;
+ begin
+  b:=clone(l,r);
+  for i:=1 to b.size do write(b.a[i],' '); writeln;
+  sort(b.head,b.tail);
+  for i:=1 to b.size do write(b.a[i],' '); writeln;
+  b.size:=unique(b.head,b.tail);
+  for i:=1 to b.size do write(b.a[i],' '); writeln;
+  for i:=l to r do write(a[i],' '); writeln;
+  for i:=l to r do a[i]:=lower_equal(b.head,b.tail,a[i]);
+ end;
+
+ function Vector.head:pint;
+ begin
+  exit(@a[1])
+ end;
+
+ function Vector.tail:pint;
+ begin
+  exit(@a[size])
  end;
 
  function Vector.isnil:boolean;
@@ -393,10 +550,10 @@ begin exit((a<b)xor z) end;
  begin
   size:=0;
   hashsize:=0;
-  head.resize(0);
-  next.resize(0);
-  node.resize(0);
-  numb.resize(0)
+  head.clear;
+  next.clear;
+  node.clear;
+  numb.clear
  end;
 
  procedure HashTab.insert(x:longint);
@@ -481,7 +638,7 @@ begin exit((a<b)xor z) end;
  procedure Heap.clear;
  begin
   size:=0;
-  h.resize(0)
+  h.clear
  end;
 
  procedure Heap.add(x:longint);
@@ -610,13 +767,13 @@ begin exit((a<b)xor z) end;
   size:=0;
   root:=0;
   tot:=0;
-  va.resize(0);
-  sm.resize(0);
-  ct.resize(0);
-  db.resize(0);
-  ls.resize(0);
-  rs.resize(0);
-  rd.resize(0)
+  va.clear;
+  sm.clear;
+  ct.clear;
+  db.clear;
+  ls.clear;
+  rs.clear;
+  rd.clear
  end;
 
  procedure Treap.insert(x:longint);
@@ -766,7 +923,7 @@ begin exit((a<b)xor z) end;
 
  procedure Stack.Clear;
  begin
-  sta.resize(0)
+  sta.clear
  end;
 
  procedure Stack.push(x:longint);
@@ -942,16 +1099,16 @@ begin exit((a<b)xor z) end;
   root:=0;
   size:=0;
   tot:=0;
-  fa.resize(0);
-  va.resize(0);
-  sm.resize(0);
-  ct.resize(0);
-  ad.resize(0); ad_tg.resize(0);
-  tm.resize(0); tm_tg.resize(0);
-  cg.resize(0); cg_tg.resize(0);
-  rv.resize(0);
-  sn[0].resize(0);
-  sn[1].resize(0)
+  fa.clear;
+  va.clear;
+  sm.clear;
+  ct.clear;
+  ad.clear; ad_tg.clear;
+  tm.clear; tm_tg.clear;
+  cg.clear; cg_tg.clear;
+  rv.clear;
+  sn[0].clear;
+  sn[1].clear
  end;
 
  procedure Splay.insert(p,x:longint);
@@ -1135,6 +1292,35 @@ begin exit((a<b)xor z) end;
  function TreeArray.isnil:boolean;
  begin
   exit(size=0)
+ end;
+
+ procedure UnionFind.clear;
+ begin
+  a.clear;
+  fa.clear
+ end;
+
+ function UnionFind.father(x:longint):longint;
+ var y:longint;
+ begin
+  y:=a.find(x);
+  if y=-1 then exit(x);
+  if x<>fa.a[y] then fa.a[y]:=father(fa.a[y]);
+  exit(fa.a[y])
+ end;
+
+ procedure UnionFind.union(u,v:longint);
+ var y,z:longint;
+ begin
+  y:=a.find(u); if y=-1 then begin a.insert(u); fa.pushback(u); y:=fa.size end;
+  z:=a.find(v); if z=-1 then begin a.insert(v); fa.pushback(v); z:=fa.size end;
+  fa.a[a.find(father(u))]:=fa.a[a.find(father(v))]
+ end;
+
+ function UnionFind.find(u,v:longint):boolean;
+ begin
+  if (a.find(u)=-1)or(a.find(v)=-1) then exit(false);
+  exit(father(u)=father(v))
  end;
 
 begin
