@@ -1,4 +1,4 @@
-﻿unit StructUnit;
+unit StructUnit;
 interface
 
 const
@@ -14,7 +14,7 @@ type
   procedure resize(n:longint);                              //重设队列大小
   procedure pushback(x:longint);                            //在队列后添加一个数
   procedure insert(p:longint;const b:array of longint);     //在p位置前插入序列b
-  procedure insert(p:longint;const b:Vector);               
+  procedure insert(p:longint;const b:Vector);
   procedure delete(p,L:longint);                            //在p位置开始删除L个数
   procedure fill(l,r,x:longint);                            //将l..r的数赋值为x
   procedure discretization(l,r:longint);                    //将l..r的数离散化
@@ -57,7 +57,7 @@ type
 
  Heap=object                                                //Heap(堆)
   size,bias:longint;                                        //size堆大小，bias偏移量
-  comp:boolean;                                             //比较器，true则小根堆，false则大根堆
+  comp:boolean;                                             //比较器，false则小根堆，true则大根堆
   h:Vector;                                                 //堆本体
   procedure setcmp(z:boolean);                              //设定比较器，setcmp(Less)则小根堆，setcmp(Greater)则大根堆
   procedure clear;                                          //清空
@@ -165,16 +165,12 @@ type
 operator +(const a,b:Vector)c:Vector;
 
 procedure sort(l,r:pint);                                   //对longint数组快速排序成递增
-procedure sort(l,r:pint;comp:boolean);                      //对longint数组快速排序，Less为递增，Greater为递减
+procedure sort(l,r:pint;comp:boolean);                      //对longint数组快速排序，comp=Less为递增，comp=Greater为递减
 function unique(l,r:pint):longint;                          //对longint数组相邻的相同元素去重，返回去重后长度
 function lower(s,t:pint;x:longint):longint;                 //对longint数组二分，返回小于x的最大值
 function upper(s,t:pint;x:longint):longint;                 //对longint数组二分，返回大于x的最小值
 function lower_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回小于等于x的最大值
 function upper_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回大于等于x的最小值
-
-var
- i:longint;
- BitSetCt:array[0..65536]of longint;
 
 
 implementation
@@ -354,6 +350,7 @@ end;
  begin
   if l<1    then l:=1;
   if r>size then r:=size;
+  if l>r then begin t.size:=0; exit(t) end;
   t.size:=r-l+1;
   setlength(t.a,t.size+5); t.a[0]:=0;
   Move(a[l],t.a[1],(size+1)<<2);
@@ -397,7 +394,12 @@ end;
 
  function BitSet.ct1(x:longint):longint;
  begin
-  exit(BitSetCt[x and 65535]+BitSetCt[x>>16])
+  x:=(x and $55555555)+((x>>1)and $55555555);
+  x:=(x and $33333333)+((x>>2)and $33333333);
+  x:=(x and $0f0f0f0f)+((x>>4)and $0f0f0f0f);
+  x:=(x and $00ff00ff)+((x>>8)and $00ff00ff);
+  x:=(x and $0000ffff)+((x>>16)and $0000ffff);
+  exit(x)
  end;
 
  procedure BitSet.clear;
@@ -1324,5 +1326,4 @@ end;
  end;
 
 begin
- for i:=1 to 1<<16 do BitSetCt[i]:=BitSetCt[i-i and(-i)]+1;
 end.
