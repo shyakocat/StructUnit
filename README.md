@@ -2,22 +2,22 @@
     
 ◆Pascal的数据结构库    
 
-*2017/03/29* 添加     
+*2017/03/29 添加*     
 >>◀Vector▶    
 >>◀HashTab▶    
 
-*2017/03/30* 添加     
+*2017/03/30 添加*     
 >>◀Heap▶  
 >>◀DeleteHeap▶   
 >>◀Treap▶   
 
-*2017/4/4* 添加      
+*2017/4/4 添加*      
 >>◀Stack▶  
 >>◀BitSet▶  
 >>◀Splay▶   
 >>◀TreeArray▶   
 
-*2017/4/5* 添加     
+*2017/4/5 添加*     
 >>◀UnionFind▶   
      
 # 队列    
@@ -86,7 +86,7 @@ begin
 end.
 ```
 要注意的是：插入、弹堆顶是O(logn)的    
-# Treap    
+# 树堆    
 ```
 uses StructUnit;
 var
@@ -110,7 +110,7 @@ begin
 end.
 ```
 要注意的是：插入、删除、统计、查询是O(logn)的，插入数的和太大会爆longint    
-# Splay    
+# 伸展树     
 ```
 uses StructUnit;
 var
@@ -127,7 +127,7 @@ begin
 end.
 ```
 要注意的是：所有单次操作期望O(logn)，但Splay常数比较大会慢，操作结果的和太大会爆longint    
-# UnionFind    
+# 并查集    
 ```
 uses StructUnit;
 var
