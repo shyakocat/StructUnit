@@ -1,10 +1,19 @@
 unit StructUnit;
 interface
 
+uses
+ windows;
 const
  Less=false;
  Greater=true;
 type
+
+ int128=record l,r:qword end;
+ pint128=^int128;
+
+ frac=record a,b:int64 end;
+ pfrac=^frac;
+
  pint=^longint;
 
  Vector=object                                              //Vector(队列)
@@ -160,6 +169,16 @@ type
   function find(u,v:longint):boolean;                       //询问u、v是否在一个连通块中
  end;
 
+ Timer=object
+  _run,_tick:longint;
+  function now:longint;
+  procedure start;
+  procedure pause;
+  procedure stop;
+  function Time:longint;
+  function delta:longint;
+ end;
+
 
 
 operator +(const a,b:Vector)c:Vector;
@@ -173,7 +192,262 @@ function lower_equal(s,t:pint;x:longint):longint;           //对longint数组�
 function upper_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回大于等于x的最小值
 
 
+operator :=(const a:int64)c:int128;
+operator :=(const c:int128)a:int64;
+operator >(const a,b:int128)c:boolean;
+operator <(const a,b:int128)c:boolean;
+operator =(const a,b:int128)c:boolean;
+operator <=(const a,b:int128)c:boolean;
+operator >=(const a,b:int128)c:boolean;
+operator +(const a,b:int128)c:int128;
+operator -(const a:int128)c:int128;
+operator -(const a,b:int128)c:int128;
+operator <<(const a:int128;x:smallint)c:int128;
+operator >>(const a:int128;x:smallint)c:int128;
+operator and(const a,b:int128)c:int128;
+operator or(const a,b:int128)c:int128;
+operator xor(const a,b:int128)c:int128;
+operator not(const a:int128)c:int128;
+operator *(const a:int128;const b:qword)c:int128;
+operator *(const a,b:int128)c:int128;
+function int128abs(const a:int128):int128;
+operator mod(const a,b:int128)c:int128;
+operator div(const a,b:int128)c:int128;
+procedure Scanf(var x:int128);
+procedure Printf(x:int128);
+procedure PrintfLn(const x:int128);
+procedure Scanf(const a:array of pint128);
+function gcd(const a,b:int64):int64;
+function lcm(const a,b:int64):int64;
+procedure decfrac(var a:frac);
+function makefrac(const a,b:int64):frac;
+function revfrac(const a:frac):frac;
+function Z_ord(const a:double):boolean;
+function nearfrac(const a:double):frac;
+function pw(const x,y:int64):int64;
+function InfRep(x:int64):boolean;
+function AutoFrac(a:frac):string;
+operator :=(const a:int64)c:frac;
+operator :=(const a:double)c:frac;
+operator :=(const c:frac)a:real;
+operator +(const a,b:frac)c:frac;
+operator -(const a,b:frac)c:frac;
+operator -(const a:frac)c:frac;
+operator *(const a,b:frac)c:frac;
+operator /(const a,b:frac)c:frac;
+operator *(const a:frac;const b:int64)c:frac;
+operator /(const a:frac;const b:int64)c:frac;
+operator =(const a,b:frac)c:boolean;
+operator <(const a,b:frac)c:boolean;
+operator <=(const a,b:frac)c:boolean;
+operator >(const a,b:frac)c:boolean;
+operator >=(const a,b:frac)c:boolean;
+procedure Scanf(var a:frac);
+procedure Printf(const a:frac);
+procedure PrintfLn(const a:frac);
+procedure Printf(const a:frac;x:longint);
+procedure PrintfLn(const a:frac;x:longint);
+procedure Scanf(const a:array of pfrac);
+
+
+
 implementation
+
+
+
+const
+ _s:qword=qword($8000000000000000);
+ _a:qword=qword($ffffffffffffffff);
+ _b:qword=qword($7fffffffffffffff);
+ _h:qword=qword($ffffffff);
+
+operator :=(const a:int64)c:int128;
+ begin if a<0 then begin c.l:=_a; c.r:=qword(a) end
+              else begin c.l:=0;  c.r:=a end end;
+operator :=(const c:int128)a:int64;
+ begin if (c.l=0)and(c.r<_s) then exit(c.r);
+       if (c.l=_a)and(c.r>=_s) then exit(int64(c.r)); halt(215) end;
+operator >(const a,b:int128)c:boolean;
+ var u,v:boolean;
+ begin u:=a.l and _s=0; v:=b.l and _s=0;
+       if u and not v then exit(true);
+       if not u and v then exit(false);
+       exit((a.l>b.l)or(a.l=b.l)and(a.r>b.r)) end;
+operator <(const a,b:int128)c:boolean;
+ var u,v:boolean;
+ begin u:=a.l and _s=0; v:=b.l and _s=0;
+       if u and not v then exit(false);
+       if not u and v then exit(true);
+       exit((a.l<b.l)or(a.l=b.l)and(a.r<b.r)) end;
+operator =(const a,b:int128)c:boolean;
+ begin exit((a.l=b.l)and(a.r=b.r)) end;
+operator <=(const a,b:int128)c:boolean;
+ begin exit((a<b)or(a=b)) end;
+operator >=(const a,b:int128)c:boolean;
+ begin exit((a>b)or(a=b)) end;
+operator +(const a,b:int128)c:int128;
+ var u,v,w:qword;
+ begin u:=(a.r or _s)-_s; v:=(b.r or _s)-_s;
+       c.r:=u+v; w:=ord(u<a.r)+ord(v<b.r)+c.r>>63; c.r:=c.r and _b+(w and 1)<<63;
+       u:=(a.l or _s)-_s; v:=(b.l or _s)-_s;
+       c.l:=u+v+w>>1; w:=ord(u<a.l)+ord(v<b.l)+c.l>>63; c.l:=c.l and _b+(w and 1)<<63 end;
+operator -(const a:int128)c:int128;
+ begin c.l:=not a.l; c.r:=not a.r; c:=c+1 end;
+operator -(const a,b:int128)c:int128;
+ begin c:=a+(-b) end;
+operator <<(const a:int128;x:smallint)c:int128;
+ begin if x>=64 then begin c.r:=0; c.l:=a.r<<(x-64) end
+                else begin c.r:=a.r<<x; c.l:=a.l<<x+a.r>>(64-x) end end;
+operator >>(const a:int128;x:smallint)c:int128;
+ begin if x>=64 then begin c.l:=0; c.r:=a.l>>(x-64) end
+                else begin c.l:=a.l>>x; c.r:=a.r>>x+a.l and(qword(1)<<x-1)<<(64-x) end end;
+operator and(const a,b:int128)c:int128;
+ begin c.l:=a.l and b.l; c.r:=a.r and b.r end;
+operator or(const a,b:int128)c:int128;
+ begin c.l:=a.l or b.l; c.r:=a.r or b.r end;
+operator xor(const a,b:int128)c:int128;
+ begin c.l:=a.l xor b.l; c.r:=a.r xor b.r end;
+operator not(const a:int128)c:int128;
+ begin c.l:=not a.l; c.r:=not a.r end;
+operator *(const a:int128;const b:qword)c:int128;
+ var u,v,w,x:int128;
+ begin if b>_h then exit(a*(b and _h)+a*(b>>32)<<32);
+       u.l:=0; u.r:=a.l>>32*b;
+       v.l:=0; v.r:=a.l and _h*b;
+       w.l:=0; w.r:=a.r>>32*b;
+       x.l:=0; x.r:=a.r and _h*b; exit(u<<96+v<<64+w<<32+x) end;
+operator *(const a,b:int128)c:int128;
+ begin exit(a*b.l<<64+a*b.r) end;
+function int128abs(const a:int128):int128;
+ begin if a.l and _s=0 then exit(a); exit(not(a-1)) end;
+operator mod(const a,b:int128)c:int128;
+ var u,v:int128; i:byte;
+ begin if b=0 then halt(200);
+       u:=int128abs(a); v:=int128abs(b); c:=0;
+       for i:=127 downto 0 do begin c:=c<<1+u>>i and 1; if c>=v then c:=c-v end;
+       if (a.l and _s=0)xor(b.l and _s=0) then c:=-c end;
+operator div(const a,b:int128)c:int128;
+ var u,v,w:int128; i:byte;
+ begin if b=0 then halt(200);
+       u:=int128abs(a); v:=int128abs(b); w:=0; c:=0;
+       for i:=127 downto 0 do begin w:=w<<1+u>>i and 1; if w>=v then begin w:=w-v; c:=c or int128(1)<<i end end;
+       if (a.l and _s=0)xor(b.l and _s=0) then c:=-c end;
+procedure Scanf(var x:int128);
+ var c:char; s:boolean=false;
+ begin
+  read(c); while (not eof)and(c<=' ') do read(c);
+  if c='-' then begin s:=true; read(c) end;
+  x:=0; while ('0'<=c)and(c<='9') do begin x:=x*10+(ord(c)-48); read(c) end;
+  if s then x:=-x end;
+procedure Printf(x:int128);
+ var s:boolean=false; p_n:byte=0; p:array[0..128]of char;
+ begin
+  if x<0 then begin s:=true; x:=-x end;
+  while x>0 do begin inc(p_n); p[p_n]:=chr(int64(x mod 10)+48); x:=x div 10 end;
+  if s then write('-');
+  if p_n=0 then write(0) else for p_n:=p_n downto 1 do write(p[p_n])
+ end;
+procedure PrintfLn(const x:int128);
+ begin Printf(x); writeln end;
+procedure Scanf(const a:array of pint128);
+ var i:longint;
+ begin for i:=0 to high(a) do Scanf(a[i]^) end;
+
+
+
+
+function gcd(const a,b:int64):int64;
+ begin if b=0 then exit(a); exit(gcd(b,a mod b)) end;
+function lcm(const a,b:int64):int64;
+ begin exit(a div gcd(a,b)*b) end;
+procedure decfrac(var a:frac);
+ var d:int64;
+ begin d:=gcd(a.a,a.b); a.a:=a.a div d; a.b:=a.b div d end;
+function makefrac(const a,b:int64):frac;
+ var c:frac;
+ begin c.a:=a; c.b:=b; decfrac(c); exit(c) end;
+function revfrac(const a:frac):frac;
+ var b:frac;
+ begin b.a:=a.b; b.b:=a.a; if b.b=0 then halt(200);
+       if b.b<0 then begin b.a:=-b.a; b.b:=-b.b end; exit(b) end;
+function Z_ord(const a:double):boolean;
+ begin exit(abs(a-round(a))<1e-7) end;
+function nearfrac(const a:double):frac;
+ var i:longint; x,t,m:double; c:frac;
+ begin
+  if Z_ord(a) then exit(makefrac(round(a),1)); m:=2;
+  for i:=1 to 1000 do begin x:=i/a; t:=abs(x-round(x));
+   if t<m then begin m:=t; c:=makefrac(i,round(x)) end end; exit(c)
+ end;
+function pw(const x,y:int64):int64;
+ begin
+  if y=0 then exit(1);
+  if y=1 then exit(x);
+  exit(sqr(pw(x,y>>1))*pw(x,y and 1))
+ end;
+function InfRep(x:int64):boolean;
+ begin while x mod 2=0 do x:=x div 2;
+       while x mod 5=0 do x:=x div 5; exit(x<>1) end;
+function AutoFrac(a:frac):string;
+ var x:int64; U,V:string;
+ p:double;
+ begin if InfRep(a.b) then begin x:=trunc(a.a/a.b+1e-7); str(x,U); x:=trunc(double(a.a/a.b-x)*1e10+1e-7); str(x,V); exit(u+'.'+V) end;
+       x:=0; while a.b<>1 do begin a.a:=a.a*10; decfrac(a); x:=x+1 end; str(a.a,U); if x=0 then exit(U); insert('.',U,length(U)-x+1); if U[1]='.' then exit('0'+U); exit(U) end;
+operator :=(const a:int64)c:frac;
+ begin c.a:=a; c.b:=1 end;
+operator :=(const a:double)c:frac;
+ begin c:=makefrac(round(a*1000000),1000000) end;
+operator :=(const c:frac)a:real;
+ begin a:=c.a/c.b end;
+operator +(const a,b:frac)c:frac;
+ begin c.b:=a.b*b.b; c.a:=a.a*b.b+a.b*b.a; decfrac(c) end;
+operator -(const a,b:frac)c:frac;
+ begin c.b:=a.b*b.b; c.a:=a.a*b.b-a.b*b.a; decfrac(c) end;
+operator -(const a:frac)c:frac;
+ begin c.a:=-a.a; c.b:=-a.b end;
+operator *(const a,b:frac)c:frac;
+ begin c.a:=a.a*b.a; c.b:=a.b*b.b; decfrac(c) end;
+operator /(const a,b:frac)c:frac;
+ begin c.a:=a.a*b.b; c.b:=a.b*b.a; decfrac(c) end;
+operator *(const a:frac;const b:int64)c:frac;
+ begin c.a:=a.a*b; c.b:=a.b; decfrac(c) end;
+operator /(const a:frac;const b:int64)c:frac;
+ begin c.a:=a.a; c.b:=a.b*b; decfrac(c) end;
+operator =(const a,b:frac)c:boolean;
+ begin exit((a.a=b.a)and(a.b=b.b)) end;
+operator <(const a,b:frac)c:boolean;
+ begin exit(a.a*b.b<b.a*a.b) end;
+operator <=(const a,b:frac)c:boolean;
+ begin exit(a.a*b.b<=b.a*a.b) end;
+operator >(const a,b:frac)c:boolean;
+ begin exit(a.a*b.b>b.a*a.b) end;
+operator >=(const a,b:frac)c:boolean;
+ begin exit(a.a*b.b>=b.a*a.b) end;
+procedure Scanf(var a:frac);
+ var c:char; x:int64;
+ begin
+  read(c); while c<=' ' do read(c);
+  a:=0; while ('0'<=c)and(c<='9') do begin a.a:=a.a*10+(ord(c)-48); read(c) end;
+  case c of '/':begin read(c); a.b:=0; while ('0'<=c)and(c<='9') do begin a.b:=a.b*10+(ord(c)-48); read(c) end; decfrac(a) end;
+            '.':begin read(c); a.b:=0; x:=1; while ('0'<=c)and(c<='9') do begin a.b:=a.b*10+(ord(c)-48); x:=x*10; read(c) end; a:=a.a+makefrac(a.b,x) end
+  end;
+  if upcase(c)='E' then begin read(c); x:=0; while ('0'<=c)and(c<='9') do begin x:=x*10+(ord(c)-48); read(c) end; a:=a*pw(10,x) end
+ end;
+procedure Printf(const a:frac);
+ begin if a.b=1 then write(a.a) else write(a.a,'/',a.b) end;
+procedure PrintfLn(const a:frac);
+ begin Printf(a); writeln end;
+procedure Printf(const a:frac;x:longint);
+ begin if x=-1 then begin writeln(AutoFrac(a)); exit end;
+       if x>10 then x:=10; write(a.a/a.b:0:x) end;
+procedure PrintfLn(const a:frac;x:longint);
+ begin Printf(a,x); writeln end;
+procedure Scanf(const a:array of pfrac);
+ var i:longint;
+ begin for i:=0 to high(a) do Scanf(a[i]^) end;
+
+
+
 
 
 function max(a,b:longint):longint;
@@ -184,7 +458,6 @@ begin if a>b then exit(b); exit(a) end;
 
 procedure sw(var a,b:longint);
 var c:longint; begin c:=a; a:=b; b:=c end;
-
 
 function cmp(a,b:longint;z:boolean):boolean;
 begin exit((a<b)xor z) end;
@@ -1323,6 +1596,48 @@ end;
  begin
   if (a.find(u)=-1)or(a.find(v)=-1) then exit(false);
   exit(father(u)=father(v))
+ end;
+
+ function Timer.now:longint;
+ begin
+  exit(GetTickCount)
+ end;
+
+ procedure Timer.start;
+ begin
+  if _run=2 then _tick:=now-_tick
+            else _tick:=now;
+  _run:=1
+ end;
+
+ procedure Timer.pause;
+ begin
+  if _run<>1 then exit;
+  _tick:=now-_tick;
+  _run:=2
+ end;
+
+ procedure Timer.stop;
+ begin
+  _run:=0
+ end;
+
+ function Timer.Time:longint;
+ begin
+  case _run of
+   0:exit(0);
+   1:exit(now-_tick);
+   2:exit(_tick)
+  end
+ end;
+
+ function Timer.delta:longint;
+ begin
+  case _run of
+   0:exit(0);
+   1:begin delta:=now-_tick; _tick:=now end;
+   2:begin delta:=    _tick; _tick:=0   end
+  end
  end;
 
 begin
