@@ -8,11 +8,14 @@ const
  Greater=true;
 type
 
- int128=record l,r:qword end;
- pint128=^int128;
+ int128=record l,r:qword end;                               //128位整形
+ pint128=^int128;                                           //int128的指针
 
- frac=record a,b:int64 end;
- pfrac=^frac;
+ frac=record a,b:int64 end;                                 //分数，即a/b
+ pfrac=^frac;                                               //frac的指针
+
+ complex=record a,b:extended end;                           //复数
+ pcomplex=^complex;                                         //complex的指针
 
  pint=^longint;
 
@@ -101,7 +104,7 @@ type
 
  Treap=object                                               //Treap(树堆——平衡树)
   root,size,tot:longint;                                    //root树根，size树大小
-  va,sm,ct,db,ls,rs,rd:Vector;                              //va值，sm和，ct个数，db重复个数，ls左子树，rs右子树
+  va,ct,db,ls,rs,rd:Vector;                                 //va值，sm和，ct个数，db重复个数，ls左子树，rs右子树
   private
    procedure pu(k:longint);                                 //更新
    procedure rr(var k:longint);                             //zig-zag
@@ -115,7 +118,6 @@ type
    function upper(x:longint):longint;                       //返回比x大的最小值
    function askrank(x:longint):longint;                     //返回x的排名
    function getrank(x:longint):longint;                     //返回排名x的数
-   function getsum(l,r:longint):longint;                    //返回排名l..r的数的和
    function isnil:boolean;                                  //返回树堆是否为空
  end;
 
@@ -169,14 +171,26 @@ type
   function find(u,v:longint):boolean;                       //询问u、v是否在一个连通块中
  end;
 
- Timer=object
-  _run,_tick:longint;
-  function now:longint;
-  procedure start;
-  procedure pause;
-  procedure stop;
-  function Time:longint;
-  function delta:longint;
+ Trie=object                                                //Trie(字典树)
+  Tot:longint;                                              //节点个数
+  ps,ct:Vector;                                             //ps为经过数，ct为命中数
+  next:array[0..255]of Vector;                              //next为各字符后继节点
+  procedure clear;                                          //清空
+  procedure insert(const s:ansistring);                     //插入字符串
+  procedure delete(const s:ansistring);                     //删除字符串（不存在就不删）
+  function count(const s:ansistring):longint;               //统计某字符串出现次数
+  function countprefix(const s:ansistring):longint;         //统计某字符串为前缀的次数
+  function isnil:boolean;                                   //范围字典树是否为空
+ end;
+
+ Timer=object                                               //Timer(计时器)
+  _run,_tick:longint;                                       //_run表示状态，_tick表示临时记录的绝对时间
+  function now:longint;                                     //返回现在的绝对时间：Windows->GetTickCount()
+  procedure start;                                          //计时器开始
+  procedure pause;                                          //计时器暂停
+  procedure stop;                                           //计时器终止
+  function Time:longint;                                    //返回开始到现在的时间
+  function delta:longint;                                   //返回开始到现在的时间，并更新
  end;
 
 
@@ -213,18 +227,17 @@ operator *(const a,b:int128)c:int128;
 function int128abs(const a:int128):int128;
 operator mod(const a,b:int128)c:int128;
 operator div(const a,b:int128)c:int128;
-procedure Scanf(var x:int128);
-procedure Printf(x:int128);
+procedure Scanf(var x:int128);                              //读入int128
+procedure Printf(x:int128);                                 //输出int128
 procedure PrintfLn(const x:int128);
-procedure Scanf(const a:array of pint128);
+procedure Scanf(const a:array of pint128);                  //批量读入int128
 function gcd(const a,b:int64):int64;
 function lcm(const a,b:int64):int64;
-procedure decfrac(var a:frac);
-function makefrac(const a,b:int64):frac;
-function revfrac(const a:frac):frac;
-function Z_ord(const a:double):boolean;
-function nearfrac(const a:double):frac;
-function pw(const x,y:int64):int64;
+procedure decfrac(var a:frac);                              //约分
+function makefrac(const a,b:int64):frac;                    //生成分数
+function revfrac(const a:frac):frac;                        //分子分母反转
+function Z_ord(const a:double):boolean;                     //返回是否认为是整数
+function nearfrac(const a:double):frac;                     //生成小范围内接近某一实数的分数
 function InfRep(x:int64):boolean;
 function AutoFrac(a:frac):string;
 operator :=(const a:int64)c:frac;
@@ -242,12 +255,25 @@ operator <(const a,b:frac)c:boolean;
 operator <=(const a,b:frac)c:boolean;
 operator >(const a,b:frac)c:boolean;
 operator >=(const a,b:frac)c:boolean;
-procedure Scanf(var a:frac);
-procedure Printf(const a:frac);
+procedure Scanf(var a:frac);                                //读入分数
+procedure Printf(const a:frac);                             //输出分数
 procedure PrintfLn(const a:frac);
-procedure Printf(const a:frac;x:longint);
+procedure Printf(const a:frac;x:longint);                   //输出分数，保留x位小数，x=-1时输出精确位（上限输出10位）
 procedure PrintfLn(const a:frac;x:longint);
-procedure Scanf(const a:array of pfrac);
+procedure Scanf(const a:array of pfrac);                    //批量读入frac
+
+
+
+operator :=(const x:extended)c:complex;
+operator +(const a:complex;const x:extended)c:complex;
+operator -(const a:complex;const x:extended)c:complex;
+operator *(const a:complex;const x:extended)c:complex;
+operator /(const a:complex;const x:extended)c:complex;
+operator +(const a,b:complex)c:complex;
+operator -(const a,b:complex)c:complex;
+operator *(const a,b:complex)c:complex;
+operator /(const a,b:complex)c:complex;
+function cplx(const a,b:extended):complex;                  //生成复数，实部real=a,虚部imag=b
 
 
 
@@ -449,6 +475,28 @@ procedure Scanf(const a:array of pfrac);
 
 
 
+operator :=(const x:extended)c:complex;
+ begin c.a:=x; c.b:=0 end;
+operator +(const a:complex;const x:extended)c:complex;
+ begin c.a:=a.a+x; c.b:=0 end;
+operator -(const a:complex;const x:extended)c:complex;
+ begin c.a:=a.a-x; c.b:=0 end;
+operator *(const a:complex;const x:extended)c:complex;
+ begin c.a:=a.a*x; c.b:=a.b*x end;
+operator /(const a:complex;const x:extended)c:complex;
+ begin c.a:=a.a/x; c.b:=a.b/x end;
+operator +(const a,b:complex)c:complex;
+ begin c.a:=a.a+b.a; c.b:=a.b+b.b end;
+operator -(const a,b:complex)c:complex;
+ begin c.a:=a.a-b.a; c.b:=a.b-b.b end;
+operator *(const a,b:complex)c:complex;
+ begin c.a:=a.a*b.a-a.b*b.b; c.b:=a.a*b.b+a.b*b.a end;
+operator /(const a,b:complex)c:complex;
+ var t:extended;
+ begin t:=b.a*b.a+b.b*b.b; c.a:=(a.a*b.a+a.b*b.b)/t; c.b:=(a.b*b.a-a.a*b.b)/t end;
+function cplx(const a,b:extended):complex;
+ begin cplx.a:=a; cplx.b:=b end;
+
 
 function max(a,b:longint):longint;
 begin if a>b then exit(a); exit(b) end;
@@ -458,6 +506,18 @@ begin if a>b then exit(b); exit(a) end;
 
 procedure sw(var a,b:longint);
 var c:longint; begin c:=a; a:=b; b:=c end;
+
+function pw(x,y:int64;const p:int64):int64;
+begin
+ x:=x mod p;
+ pw:=1;
+ while y>0 do
+ begin
+  if odd(y) then pw:=pw*x mod p;
+  x:=x*x mod p;
+  y:=y>>1
+ end
+end;
 
 function cmp(a,b:longint;z:boolean):boolean;
 begin exit((a<b)xor z) end;
@@ -1014,9 +1074,8 @@ end;
  begin
   l:=ls.a[k]; r:=rs.a[k];
   ct.a[k]:=db.a[k];
-  sm.a[k]:=va.a[k]*db.a[k];
-  if l<>0 then begin inc(ct.a[k],ct.a[l]); inc(sm.a[k],sm.a[l]) end;
-  if r<>0 then begin inc(ct.a[k],ct.a[r]); inc(sm.a[k],sm.a[r]) end
+  if l<>0 then inc(ct.a[k],ct.a[l]);
+  if r<>0 then inc(ct.a[k],ct.a[r])
  end;
 
  procedure Treap.rr(var k:longint);
@@ -1043,7 +1102,6 @@ end;
   root:=0;
   tot:=0;
   va.clear;
-  sm.clear;
   ct.clear;
   db.clear;
   ls.clear;
@@ -1060,7 +1118,6 @@ end;
     inc(tot);
     k:=tot;
     va.pushback(x);
-    sm.pushback(x);
     ct.pushback(1);
     db.pushback(1);
     ls.pushback(0);
@@ -1068,7 +1125,7 @@ end;
     rd.pushback(random(maxlongint));
     exit
    end;
-   if x=va.a[k] then begin inc(db.a[k]); inc(sm.a[k],va.a[k]); exit end else
+   if x=va.a[k] then begin inc(db.a[k]); exit end else
    if x<va.a[k] then begin ins(ls.a[k],x); if rd.a[ls.a[k]]<rd.a[k] then rr(k) end
                 else begin ins(rs.a[k],x); if rd.a[rs.a[k]]<rd.a[k] then lr(k) end;
    pu(k)
@@ -1171,24 +1228,6 @@ end;
  begin
   if (x<1)or(x>size) then exit(-1);
   exit(sk(root,x))
- end;
-
- function Treap.getsum(l,r:longint):longint;
-
-  function sksum(k,x:longint):longint;
-  var t:longint;
-  begin
-   t:=ct.a[ls.a[k]];
-   if (t+1<=x)and(x<=t+db.a[k]) then exit(sm.a[ls.a[k]]+(x-t)*va.a[k]);
-   if x<=t then exit(sksum(ls.a[k],x));
-   exit(sm.a[ls.a[k]]+va.a[k]*db.a[k]+sksum(rs.a[k],x-t-db.a[k]))
-  end;
-
- begin
-  if l>r then exit(0);
-  if (l<1)or(l>size)or(r<1)or(r>size) then exit(-1);
-  if l=1 then exit(sksum(root,r));
-  exit(sksum(root,r)-sksum(root,l-1))
  end;
 
  function Treap.isnil:boolean;
@@ -1596,6 +1635,87 @@ end;
  begin
   if (a.find(u)=-1)or(a.find(v)=-1) then exit(false);
   exit(father(u)=father(v))
+ end;
+
+ procedure Trie.clear;
+ var i:longint;
+ begin
+  Tot:=0;
+  ps.clear;
+  ct.clear;
+  for i:=0 to 255 do next[i].clear
+ end;
+
+ procedure Trie.insert(const s:ansistring);
+ var now,i:longint;
+
+  function new:longint;
+  var i:longint;
+  begin
+   inc(Tot);
+   ps.pushback(0);
+   ct.pushback(0);
+   for i:=0 to 255 do next[i].pushback(0);
+   exit(Tot)
+  end;
+
+ begin
+  if isnil then new;
+  now:=1;
+  for i:=1 to length(s) do
+  begin
+   inc(ps.a[now]);
+   if next[ord(s[i])].a[now]=0 then
+      next[ord(s[i])].a[now]:=new;
+   now:=next[ord(s[i])].a[now]
+  end;
+  inc(ps.a[now]);
+  inc(ct.a[now])
+ end;
+
+ procedure Trie.delete(const s:ansistring);
+ var now,i:longint;
+ begin
+  if count(s)=0 then exit;
+  now:=1;
+  for i:=1 to length(s) do
+  begin
+   dec(ps.a[now]);
+   now:=next[ord(s[i])].a[now]
+  end;
+  dec(ps.a[now]);
+  dec(ct.a[now])
+ end;
+
+ function Trie.count(const s:ansistring):longint;
+ var now,i:longint;
+ begin
+  if isnil then exit(0);
+  now:=1;
+  for i:=1 to length(s) do
+  begin
+   now:=next[ord(s[i])].a[now];
+   if now=0 then exit(0)
+  end;
+  exit(ct.a[now])
+ end;
+
+ function Trie.countprefix(const s:ansistring):longint;
+ var now,i:longint;
+ begin
+  if isnil then exit(0);
+  now:=1;
+  for i:=1 to length(s) do
+  begin
+   now:=next[ord(s[i])].a[now];
+   if now=0 then exit(0)
+  end;
+  exit(ps.a[now])
+ end;
+
+ function Trie.isnil:boolean;
+ begin
+  exit((Tot=0)or(ps.a[1]=0))
  end;
 
  function Timer.now:longint;
