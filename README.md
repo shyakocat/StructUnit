@@ -21,7 +21,13 @@
 >>◀UnionFind▶   
 
 *2017/4/15 添加*     
->>◀int128▶   
+>>◀int128▶       
+      
+*2017/4/21 添加*     
+>>◀frac▶       
+>>◀complex▶       
+>>◀Trie▶       
+
      
 # 队列    
 ```
@@ -142,7 +148,24 @@ begin
 end.
 ```
 要注意的是：合并、查询期望O(log\*n)，操作值在longint内都是可以的    
-# 其他    
+# 字典树
+```
+uses StructUnit;
+var
+ a:Trie;
+begin
+ a.insert('apple');              //往字典树插入字符串apple
+ a.insert('super');
+ a.insert('shyakocat');          
+ a.insert('shine');
+ a.insert('abc');                //现在字典中有：abc,apple,shine,shyakocat,super这些单词
+ writeln(a.count('shyakocat'));  //输出shyakocat的个数，结果是1
+ a.delete('super');              //删除字典中的super
+ writeln(a.countprefix('sh'));   //输出字典中sh开头的单词个数，结果是2
+end.
+```
+要注意的是：插入、删除复杂度为串长，但是空间开销为O(255×len)很大
+# 其他     
 ```
 uses StructUnit;
 var
