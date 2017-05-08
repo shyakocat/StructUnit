@@ -204,6 +204,7 @@ function lower(s,t:pint;x:longint):longint;                 //对longint数组�
 function upper(s,t:pint;x:longint):longint;                 //对longint数组二分，返回大于x的最小值
 function lower_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回小于等于x的最大值
 function upper_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回大于等于x的最小值
+function getweek(Y,M,D:longint):longint;
 
 
 operator :=(const a:int64)c:int128;
@@ -615,6 +616,15 @@ begin
                else l:=m+1
  end;
  exit(l+1)
+end;
+
+function getweek(Y,M,D:longint):longint;
+var c,w:longint;
+begin
+ c:=y div 100;
+ y:=y mod 100;
+ w:=(y+y>>2+c>>2-c<<1+26*(m+1)div 10+d-2)mod 7+1;
+ exit(w)
 end;
 
  procedure Vector.resize(n:longint);
