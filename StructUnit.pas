@@ -1,4 +1,4 @@
-unit StructUnit;
+﻿unit StructUnit;
 interface
 
 uses
@@ -184,13 +184,36 @@ type
  end;
 
  Timer=object                                               //Timer(计时器)
-  _run,_tick:longint;                                       //_run表示状态，_tick表示临时记录的绝对时间
-  function now:longint;                                     //返回现在的绝对时间：Windows->GetTickCount()
+  _run,_tick:int64;                                         //_run表示状态，_tick表示临时记录的绝对时间
+  function now:int64;                                       //返回现在的绝对时间：Windows->GetTickCount()
   procedure start;                                          //计时器开始
   procedure pause;                                          //计时器暂停
   procedure stop;                                           //计时器终止
-  function Time:longint;                                    //返回开始到现在的时间
-  function delta:longint;                                   //返回开始到现在的时间，并更新
+  function Time:int64;                                      //返回开始到现在的时间
+  function delta:int64;                                     //返回开始到现在的时间，并更新
+ end;
+
+ RMQ_ST=object
+  const
+   RMQ_MIN=0;
+   RMQ_MAX=1;
+  var
+   cmp:shortint;                                            //比较器，RMQ_MIN时求区间min，否则求区间max
+   h:array of longint;                                      //二次幂
+   z:array of array of longint;                             //ST表
+  procedure setcmp(x:longint);                              //设定比较器
+  procedure init(n:longint;a:pint);                         //初始化，O(nlogn)
+  function query(l,r:longint):longint;                      //询问区间[l,r]，O(1)
+ end;
+
+ Bottle=object
+  size:longint;
+  a:HashTab;
+  b:Vector;
+  procedure clear;
+  procedure add(x,y:longint);
+  function count(x:longint):longint;
+  function isnil:boolean;
  end;
 
 
@@ -204,7 +227,7 @@ function lower(s,t:pint;x:longint):longint;                 //对longint数组�
 function upper(s,t:pint;x:longint):longint;                 //对longint数组二分，返回大于x的最小值
 function lower_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回小于等于x的最大值
 function upper_equal(s,t:pint;x:longint):longint;           //对longint数组二分，返回大于等于x的最小值
-function getweek(Y,M,D:longint):longint;
+function getweek(Y,M,D:longint):longint;                    //对年(Y)月(M)日(D)用返回星期几
 
 
 operator :=(const a:int64)c:int128;
@@ -1728,9 +1751,9 @@ end;
   exit((Tot=0)or(ps.a[1]=0))
  end;
 
- function Timer.now:longint;
+ function Timer.now:int64;
  begin
-  exit(GetTickCount)
+  exit(GetTickCount64)
  end;
 
  procedure Timer.start;
@@ -1752,7 +1775,7 @@ end;
   _run:=0
  end;
 
- function Timer.Time:longint;
+ function Timer.Time:int64;
  begin
   case _run of
    0:exit(0);
@@ -1761,7 +1784,7 @@ end;
   end
  end;
 
- function Timer.delta:longint;
+ function Timer.delta:int64;
  begin
   case _run of
    0:exit(0);
@@ -1769,6 +1792,72 @@ end;
    2:begin delta:=    _tick; _tick:=0   end
   end
  end;
+
+ procedure RMQ_ST.setcmp(x:longint);
+ begin
+  cmp:=x
+ end;
+
+ procedure RMQ_ST.init(n:longint;a:pint);
+ var i,j,w:longint;
+ begin
+  w:=trunc(ln(n)/ln(2)+1e-6);
+  setlength(h,n+5);
+  setlength(z,w+1,n+5);
+  h[1]:=0;
+  for i:=2 to n do h[i]:=h[i>>1]+1;
+  for i:=1 to n do z[0,i]:=a[i-1];
+  if cmp=RMQ_MIN then
+   for j:=1 to w do
+   for i:=1 to n-1<<j+1 do z[j,i]:=min(z[j-1,i],z[j-1,i+1<<(j-1)])
+  else
+   for j:=1 to w do
+   for i:=1 to n-1<<j+1 do z[j,i]:=max(z[j-1,i],z[j-1,i+1<<(j-1)])
+ end;
+
+ function RMQ_ST.query(l,r:longint):longint;
+ var w:longint;
+ begin
+  w:=h[r-l+1];
+  if cmp=RMQ_MIN then exit(min(z[w,l],z[w,r-1<<w+1]));
+                      exit(max(z[w,l],z[w,r-1<<w+1]))
+ end;
+
+ procedure Bottle.clear;
+ begin
+  size:=0;
+  a.clear;
+  b.clear
+ end;
+
+ procedure Bottle.add(x,y:longint);
+ var t:longint;
+ begin
+  t:=a.find(x);
+  if t=-1 then
+  begin
+   inc(size);
+   t:=size;
+   a.insert(x);
+   b.pushback(y)
+  end
+  else
+   inc(b.a[t],y)
+ end;
+
+ function Bottle.count(x:longint):longint;
+ var t:longint;
+ begin
+  t:=a.find(x);
+  if t=-1 then exit(0);
+  exit(b.a[t])
+ end;
+
+ function Bottle.isnil:boolean;
+ begin
+  exit(size=0)
+ end;
+
 
 begin
 end.
