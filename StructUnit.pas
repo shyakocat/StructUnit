@@ -1145,6 +1145,7 @@ end;
  procedure Treap.insert(x:longint);
 
   procedure ins(var k:longint;x:longint);
+  var tmp:Longint;
   begin
    if k=0 then
    begin
@@ -1159,8 +1160,8 @@ end;
     exit
    end;
    if x=va.a[k] then begin inc(db.a[k]); exit end else
-   if x<va.a[k] then begin ins(ls.a[k],x); if rd.a[ls.a[k]]<rd.a[k] then rr(k) end
-                else begin ins(rs.a[k],x); if rd.a[rs.a[k]]<rd.a[k] then lr(k) end;
+   if x<va.a[k] then begin tmp:=ls.a[k]; ins(tmp,x); ls.a[k]:=tmp; if rd.a[ls.a[k]]<rd.a[k] then rr(k) end
+                else begin tmp:=rs.a[k]; ins(tmp,x); rs.a[k]:=tmp; if rd.a[rs.a[k]]<rd.a[k] then lr(k) end;
    pu(k)
   end;
 
